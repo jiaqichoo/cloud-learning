@@ -5,15 +5,67 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  AWS_REGION: us-east-1
+
 jobs:
-  test-deployment:
+  deploy-s3-bucket:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: List available templates
+      run: |
+        echo "📁 Available CloudFormation templates:"
+        find . -name "*.yaml" -o -name "*.yml" | grep -v ".github" || echo "No templates found in root"
+
+    - name: Create Simple S3 Bucket
+      run: |
+        echo "🚀 Creating S3 bucket via AWS CLI..."
         
-      - name: List files
-        run: ls -la
+        # Create a unique bucket name
+        TIMESTAMP=$(date +%s)
+        BUCKET_NAME="github-actions-bucket-$TIMESTAMP"
         
-      - name: Test AWS Connection
-        run: echo "AWS deployment will go here!"
+        echo "📦 Creating bucket: $BUCKET_NAME"
+        
+        # Create bucket using AWS CLI
+        aws s3api create-bucket \
+          --bucket $BUCKET_NAME \
+          --region $AWS_REGION \
+          --create-bucket-configuration LocationConstraint=$AWS_REGION
+        
+        echo "✅ Bucket created successfully: $BUCKET_NAME"
+        
+        # Tag the bucket
+        aws s3api put-bucket-tagging \
+          --bucket $BUCKET_NAME \
+          --tagging 'TagSet=[{Key=Environment,Value=pilot-training},{Key=Source,Value=GitHub-Actions},{Key=Purpose,Value=learning}]'
+        
+        echo "🏷️  Tags added to bucket"
+
+    - name: List S3 Buckets
+      run: |
+        echo "📊 Listing S3 buckets:"
+        aws s3 ls
+
+    - name: Success Celebration
+      run: |
+        echo " "
+        echo "🎉 🎉 🎉 SUCCESS! 🎉 🎉 🎉"
+        echo " "
+        echo "🚀 REAL AWS DEPLOYMENT COMPLETED!"
+        echo "📦 S3 Bucket created via GitHub Actions"
+        echo "🔧 Automated CI/CD pipeline is WORKING!"
+        echo "💼 Professional DevOps skill ACQUIRED!"
+        echo " "
+        echo "Next: Check AWS Console to see your new bucket!"
