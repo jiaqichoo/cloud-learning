@@ -1,10 +1,10 @@
-name: Find My S3 Bucket
+name: Find My Buckets in Main Account
 
 on:
   workflow_dispatch:
 
 jobs:
-  find-bucket:
+  find-buckets:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -17,45 +17,65 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Create S3 Bucket
+    - name: Get Account Info
       run: |
-        echo "🚀 Creating S3 bucket..."
-        BUCKET_NAME="my-bucket-$(date +%s)"
-        echo "📦 Bucket name: $BUCKET_NAME"
+        echo "🔍 You are in COMPANY MAIN ACCOUNT"
+        echo "👤 IAM User: jqchoo@strateqgroup.com"
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        echo "🏢 Account ID: $ACCOUNT_ID"
+
+    - name: Create AND FIND Bucket
+      run: |
+        echo "🚀 Creating bucket in main account..."
+        BUCKET_NAME="main-account-test-$(date +%s)"
+        echo "📦 Bucket: $BUCKET_NAME"
         
+        # Create bucket
         aws s3api create-bucket \
           --bucket "$BUCKET_NAME" \
           --region us-east-1
         
-        echo "✅ Bucket creation command completed!"
-        echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
-
-    - name: Verify Bucket Exists via API
-      run: |
-        echo "🔍 Checking if bucket '$BUCKET_NAME' exists via AWS API..."
+        echo "✅ Bucket created!"
+        
+        # Wait a moment
+        sleep 5
+        
+        # Verify it exists
+        echo "🔍 Verifying bucket exists via API..."
         if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-          echo "🎉 API CONFIRMS: Bucket '$BUCKET_NAME' EXISTS!"
+          echo "🎉 API CONFIRMS: Bucket '$BUCKET_NAME' EXISTS in main account!"
         else
-          echo "❌ API says: Bucket '$BUCKET_NAME' does NOT exist"
+          echo "❌ API says bucket doesn't exist - possible permission issue"
         fi
 
-    - name: List ALL Buckets via API
+    - name: List Recent Buckets
       run: |
-        echo "📊 Listing ALL buckets via AWS API:"
-        aws s3api list-buckets --query 'Buckets[].Name' --output table
+        echo "📊 Listing ALL buckets in main account (recent first):"
+        aws s3api list-buckets --query 'sort_by(Buckets, &CreationDate)[-10:].{Name: Name, Created: CreationDate}' --output table
 
-    - name: Get Current AWS Account Info
+    - name: Check S3 Permissions
       run: |
-        echo "👤 Current AWS Account Information:"
-        aws sts get-caller-identity
+        echo "🔐 Checking your S3 permissions..."
+        echo "Testing LIST permission:"
+        aws s3 ls && echo "✅ Can list buckets" || echo "❌ Cannot list buckets"
+        
+        echo "Testing CREATE permission:"
+        # We already tested this above
 
-    - name: Check Different Regions
+    - name: Important Instructions for Main Account
       run: |
-        echo "🌍 Checking if bucket exists in different regions..."
-        for region in us-east-1 us-west-2 eu-west-1; do
-          echo "--- Region: $region ---"
-          AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
-          AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-          AWS_DEFAULT_REGION="$region" \
-          aws s3api list-buckets --query "Buckets[?contains(Name, 'my-bucket-')].Name" --output table 2>/dev/null || echo "No access to region $region"
-        done
+        echo ""
+        echo "🎯 YOU ARE IN YOUR COMPANY'S MAIN AWS ACCOUNT"
+        echo "=============================================="
+        echo "👤 IAM User: jqchoo@strateqgroup.com"
+        echo ""
+        echo "🔍 IN AWS CONSOLE, CHECK:"
+        echo "1. Make sure you're logged in as jqchoo@strateqgroup.com"
+        echo "2. Go to S3 service"
+        echo "3. Look for buckets starting with 'main-account-test-'"
+        echo "4. Also check if there are MANY buckets (might be hard to find)"
+        echo ""
+        echo "⚠️  If you still can't find buckets:"
+        echo "• Ask your mentor about S3 permissions"
+        echo "• You might need 's3:ListAllMyBuckets' permission"
+        echo "• Or buckets might be in a different organization unit"
