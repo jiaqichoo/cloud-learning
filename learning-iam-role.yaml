@@ -5,7 +5,7 @@ Resources:
   LearningBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "learning-bucket-${AWS::AccountId}"
+      BucketName: !Sub "lambda-test-${AWS::AccountId}"
 
   # This Lambda function WILL need IAM role
   TestFunction:
