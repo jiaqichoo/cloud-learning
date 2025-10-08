@@ -1,14 +1,25 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: My first S3 bucket via GitHub
+Description: SAFE LEARNING - S3 Bucket for cloud training
 
 Resources:
-  MyGitHubBucket:
+  LearningBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "my-github-bucket-${AWS::AccountId}"
+      BucketName: !Sub "learning-bucket-${AWS::AccountId}"
       AccessControl: Private
       Tags:
-        - Key: Source
-          Value: GitHub
+        - Key: Environment
+          Value: pilot-training
+        - Key: Purpose
+          Value: learning-cloudformation
         - Key: Project
-          Value: Learning
+          Value: internship-2024
+        - Key: Owner
+          Value: jiaqi
+        - Key: AutoDelete
+          Value: true
+
+Outputs:
+  BucketName:
+    Description: Name of the created bucket
+    Value: !Ref LearningBucket
