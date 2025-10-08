@@ -25,4 +25,4 @@ jobs:
           done
           
       - name: Success Message
-        run: echo "🎉 GitHub Actions is working! Next step: AWS deployment"
+        run: echo "🎉 GitHub Actions is working! Next step:AWS deployment"
