@@ -1,10 +1,10 @@
-name: Find My Buckets in Main Account
+name: Deploy to AWS - REAL
 
 on:
   workflow_dispatch:
 
 jobs:
-  find-buckets:
+  deploy-s3:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -17,65 +17,35 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Get Account Info
+    - name: Create REAL S3 Bucket
       run: |
-        echo "🔍 You are in COMPANY MAIN ACCOUNT"
-        echo "👤 IAM User: jqchoo@strateqgroup.com"
-        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
-        echo "🏢 Account ID: $ACCOUNT_ID"
-
-    - name: Create AND FIND Bucket
-      run: |
-        echo "🚀 Creating bucket in main account..."
-        BUCKET_NAME="main-account-test-$(date +%s)"
+        echo "🚀 CREATING REAL S3 BUCKET IN AWS!"
+        BUCKET_NAME="jiqi-real-bucket-$(date +%s)"
         echo "📦 Bucket: $BUCKET_NAME"
         
-        # Create bucket
+        # Create the bucket
         aws s3api create-bucket \
           --bucket "$BUCKET_NAME" \
           --region us-east-1
         
-        echo "✅ Bucket created!"
-        
-        # Wait a moment
-        sleep 5
+        echo "✅ REAL BUCKET CREATED: $BUCKET_NAME"
         
         # Verify it exists
-        echo "🔍 Verifying bucket exists via API..."
-        if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
-          echo "🎉 API CONFIRMS: Bucket '$BUCKET_NAME' EXISTS in main account!"
-        else
-          echo "❌ API says bucket doesn't exist - possible permission issue"
-        fi
+        echo "🔍 Verifying via AWS API..."
+        aws s3api head-bucket --bucket "$BUCKET_NAME"
+        echo "🎉 AWS API CONFIRMS BUCKET EXISTS!"
 
-    - name: List Recent Buckets
+    - name: List All Buckets to Prove It
       run: |
-        echo "📊 Listing ALL buckets in main account (recent first):"
-        aws s3api list-buckets --query 'sort_by(Buckets, &CreationDate)[-10:].{Name: Name, Created: CreationDate}' --output table
+        echo "📊 ALL BUCKETS IN YOUR ACCOUNT:"
+        aws s3api list-buckets --query 'Buckets[].Name' --output table
 
-    - name: Check S3 Permissions
+    - name: Celebration
       run: |
-        echo "🔐 Checking your S3 permissions..."
-        echo "Testing LIST permission:"
-        aws s3 ls && echo "✅ Can list buckets" || echo "❌ Cannot list buckets"
-        
-        echo "Testing CREATE permission:"
-        # We already tested this above
-
-    - name: Important Instructions for Main Account
-      run: |
-        echo ""
-        echo "🎯 YOU ARE IN YOUR COMPANY'S MAIN AWS ACCOUNT"
-        echo "=============================================="
-        echo "👤 IAM User: jqchoo@strateqgroup.com"
-        echo ""
-        echo "🔍 IN AWS CONSOLE, CHECK:"
-        echo "1. Make sure you're logged in as jqchoo@strateqgroup.com"
-        echo "2. Go to S3 service"
-        echo "3. Look for buckets starting with 'main-account-test-'"
-        echo "4. Also check if there are MANY buckets (might be hard to find)"
-        echo ""
-        echo "⚠️  If you still can't find buckets:"
-        echo "• Ask your mentor about S3 permissions"
-        echo "• You might need 's3:ListAllMyBuckets' permission"
-        echo "• Or buckets might be in a different organization unit"
+        echo " "
+        echo "🌈🌈🌈 SUCCESS! 🌈🌈🌈"
+        echo "🚀 REAL AWS DEPLOYMENT COMPLETED!"
+        echo "📦 S3 BUCKET CREATED VIA AUTOMATION!"
+        echo "💼 You now have a working CI/CD pipeline!"
+        echo " "
+        echo "Check AWS S3 Console for your new bucket!"
