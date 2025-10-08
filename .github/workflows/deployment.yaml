@@ -1,10 +1,10 @@
-name: Simple S3 Test
+name: Simple S3 Bucket - WORKING
 
 on:
   workflow_dispatch:
 
 jobs:
-  simple-test:
+  create-bucket:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -17,17 +17,15 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Create One Simple Bucket
+    - name: Create Bucket
       run: |
-        echo "🚀 Creating one simple bucket..."
-        BUCKET="simple-test-$(date +%s)"
-        echo "Bucket: $BUCKET"
+        BUCKET="my-bucket-$(date +%s)"
+        echo "Creating: $BUCKET"
         
+        # ✅ CORRECT for us-east-1 - NO LocationConstraint!
         aws s3api create-bucket \
           --bucket "$BUCKET" \
-          --region us-east-1 \
-          --create-bucket-configuration LocationConstraint=us-east-1
+          --region us-east-1
         
-        echo "✅ Command executed!"
-        echo "Checking if bucket exists:"
-        aws s3 ls | grep "$BUCKET" && echo "🎉 BUCKET CREATED!" || echo "❌ BUCKET NOT FOUND"
+        echo "✅ SUCCESS! Bucket created: $BUCKET"
+        aws s3 ls | grep "$BUCKET"
