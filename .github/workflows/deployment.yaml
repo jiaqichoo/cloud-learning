@@ -1,31 +1,61 @@
-name: Simple S3 Bucket - WORKING
+name: Find My S3 Bucket
 
 on:
   workflow_dispatch:
 
 jobs:
-  create-bucket:
+  find-bucket:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Setup AWS
+    - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-east-1
 
-    - name: Create Bucket
+    - name: Create S3 Bucket
       run: |
-        BUCKET="my-bucket-$(date +%s)"
-        echo "Creating: $BUCKET"
+        echo "🚀 Creating S3 bucket..."
+        BUCKET_NAME="my-bucket-$(date +%s)"
+        echo "📦 Bucket name: $BUCKET_NAME"
         
-        # ✅ CORRECT for us-east-1 - NO LocationConstraint!
         aws s3api create-bucket \
-          --bucket "$BUCKET" \
+          --bucket "$BUCKET_NAME" \
           --region us-east-1
         
-        echo "✅ SUCCESS! Bucket created: $BUCKET"
-        aws s3 ls | grep "$BUCKET"
+        echo "✅ Bucket creation command completed!"
+        echo "BUCKET_NAME=$BUCKET_NAME" >> $GITHUB_ENV
+
+    - name: Verify Bucket Exists via API
+      run: |
+        echo "🔍 Checking if bucket '$BUCKET_NAME' exists via AWS API..."
+        if aws s3api head-bucket --bucket "$BUCKET_NAME" 2>/dev/null; then
+          echo "🎉 API CONFIRMS: Bucket '$BUCKET_NAME' EXISTS!"
+        else
+          echo "❌ API says: Bucket '$BUCKET_NAME' does NOT exist"
+        fi
+
+    - name: List ALL Buckets via API
+      run: |
+        echo "📊 Listing ALL buckets via AWS API:"
+        aws s3api list-buckets --query 'Buckets[].Name' --output table
+
+    - name: Get Current AWS Account Info
+      run: |
+        echo "👤 Current AWS Account Information:"
+        aws sts get-caller-identity
+
+    - name: Check Different Regions
+      run: |
+        echo "🌍 Checking if bucket exists in different regions..."
+        for region in us-east-1 us-west-2 eu-west-1; do
+          echo "--- Region: $region ---"
+          AWS_ACCESS_KEY_ID="${{ secrets.AWS_ACCESS_KEY_ID }}" \
+          AWS_SECRET_ACCESS_KEY="${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
+          AWS_DEFAULT_REGION="$region" \
+          aws s3api list-buckets --query "Buckets[?contains(Name, 'my-bucket-')].Name" --output table 2>/dev/null || echo "No access to region $region"
+        done
